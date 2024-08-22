@@ -1,5 +1,14 @@
 # 悟空壁纸
 
+## 截图
+
+- mac
+![mac](./screenshot/mac.jpg)
+
+- win
+![win](./screenshot/win.png)
+
+
 ## 安装依赖
 
 ```bash

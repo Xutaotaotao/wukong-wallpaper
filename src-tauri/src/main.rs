@@ -21,10 +21,8 @@ use winapi::um::winuser::SPI_SETDESKWALLPAPER;
 
 #[derive(Clone, serde::Serialize)]
 struct Payload {
-  message: String,
+    message: String,
 }
-
-
 
 #[command]
 async fn download_and_set_wallpaper(url: String, file_name: String) -> Result<(), String> {
@@ -118,10 +116,22 @@ fn main() {
                     window.set_focus().unwrap();
                 }
                 "next" => {
-                    app.emit_all("change_wallpaper", Payload { message: "next_wallpaper".into() }).unwrap();
+                    app.emit_all(
+                        "change_wallpaper",
+                        Payload {
+                            message: "next_wallpaper".into(),
+                        },
+                    )
+                    .unwrap();
                 }
                 "previous" => {
-                    app.emit_all("change_wallpaper", Payload { message: "previous_wallpaper".into() }).unwrap();
+                    app.emit_all(
+                        "change_wallpaper",
+                        Payload {
+                            message: "previous_wallpaper".into(),
+                        },
+                    )
+                    .unwrap();
                 }
                 "about_app" => {
                     let _ = open(
@@ -135,6 +145,14 @@ fn main() {
                 }
                 _ => {}
             },
+            SystemTrayEvent::LeftClick { .. } => {
+                #[cfg(target_os = "windows")]
+                {
+                    let window = app.get_window("main").unwrap();
+                    window.show().unwrap();
+                    window.set_focus().unwrap();
+                }
+            }
             _ => {}
         })
         .setup(|app| {
@@ -149,7 +167,7 @@ fn main() {
         .expect("error while building tauri application")
         .run(|_app_handle, event| match event {
             tauri::RunEvent::ExitRequested { api, .. } => {
-            api.prevent_exit();
+                api.prevent_exit();
             }
             _ => {}
         })
