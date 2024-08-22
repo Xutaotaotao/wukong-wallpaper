@@ -10,6 +10,10 @@
 
 ![win](./screenshot/win.png)
 
+## 下载
+
+https://github.com/Xutaotaotao/wukong-wallpaper/releases
+
 ## 本地开发
 
 ### 安装依赖
