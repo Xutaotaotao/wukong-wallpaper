@@ -19,6 +19,11 @@ use winapi::um::winuser::SystemParametersInfoA;
 #[cfg(windows)]
 use winapi::um::winuser::SPI_SETDESKWALLPAPER;
 
+#[derive(Clone, serde::Serialize)]
+struct Payload {
+  message: String,
+}
+
 
 
 #[command]
@@ -113,10 +118,10 @@ fn main() {
                     window.set_focus().unwrap();
                 }
                 "next" => {
-                    app.emit_all("next_wallpaper", {}).unwrap();
+                    app.emit_all("change_wallpaper", Payload { message: "next_wallpaper".into() }).unwrap();
                 }
                 "previous" => {
-                    app.emit_all("previous_wallpaper", {}).unwrap();
+                    app.emit_all("change_wallpaper", Payload { message: "previous_wallpaper".into() }).unwrap();
                 }
                 "about_app" => {
                     let _ = open(
