@@ -4,13 +4,15 @@
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 use dirs;
 use reqwest;
+use std::ffi::CString;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
-use std::process::Command;
+use tauri::api::shell::open;
 use tauri::{command, Manager, SystemTrayEvent, SystemTrayMenuItem};
 use tauri::{CustomMenuItem, SystemTray, SystemTrayMenu};
-use tauri::api::shell::open;
+use winapi::um::winuser::SystemParametersInfoA;
+use winapi::um::winuser::SPI_SETDESKWALLPAPER;
 
 #[command]
 async fn download_and_set_wallpaper(url: String, file_name: String) -> Result<(), String> {
@@ -30,22 +32,14 @@ async fn download_and_set_wallpaper(url: String, file_name: String) -> Result<()
 fn change_wallpaper(image_path: String) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
-        let output = Command::new("powershell")
-            .args(&[
-                "-command",
-                &format!("Set-ItemProperty -path 'HKCU:\\Control Panel\\Desktop\\' -name Wallpaper -value '{}'", image_path),
-            ])
-            .output()
-            .map_err(|e| e.to_string())?;
-
-        if !output.status.success() {
-            return Err(String::from_utf8_lossy(&output.stderr).to_string());
+        let c_image_path = CString::new(image_path).map_err(|e| e.to_string())?;
+        unsafe {
+            if SystemParametersInfoA(SPI_SETDESKWALLPAPER, 0, c_image_path.as_ptr() as *mut _, 0)
+                == 0
+            {
+                return Err("Failed to set wallpaper".into());
+            }
         }
-
-        Command::new("rundll32")
-            .args(&["user32.dll,UpdatePerUserSystemParameters"])
-            .output()
-            .map_err(|e| e.to_string())?;
     }
 
     #[cfg(target_os = "macos")]
@@ -79,11 +73,9 @@ fn change_wallpaper(image_path: String) -> Result<(), String> {
 fn main() {
     let show = CustomMenuItem::new("show".to_string(), "打开面板");
     let next = CustomMenuItem::new("next".to_string(), "下一张");
-    let previous= CustomMenuItem::new("previous".to_string(), "上一张");
+    let previous = CustomMenuItem::new("previous".to_string(), "上一张");
     let about_app = CustomMenuItem::new("about_app".to_string(), "关于");
     let quit = CustomMenuItem::new("quit".to_string(), "退出");
-
-    
 
     let tray_menu = SystemTrayMenu::new()
         .add_item(show)
@@ -119,13 +111,22 @@ fn main() {
                     app.emit_all("previous_wallpaper", {}).unwrap();
                 }
                 "about_app" => {
-                    let _ = open(&app.shell_scope(), "https://github.com/Xutaotaotao/wukong-wallpaper", None);
+                    let _ = open(
+                        &app.shell_scope(),
+                        "https://github.com/Xutaotaotao/wukong-wallpaper",
+                        None,
+                    );
                 }
                 "quit" => {
                     std::process::exit(0);
                 }
                 _ => {}
             },
+            SystemTrayEvent::LeftClick { .. } => {
+                let window = app.get_window("main").unwrap();
+                window.show().unwrap();
+                window.set_focus().unwrap();
+            }
             _ => {}
         })
         .setup(|app| {
@@ -136,6 +137,12 @@ fn main() {
             });
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|_app_handle, event| match event {
+            tauri::RunEvent::ExitRequested { api, .. } => {
+            api.prevent_exit();
+            }
+            _ => {}
+        })
 }

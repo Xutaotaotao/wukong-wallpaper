@@ -1,0 +1,62 @@
+name: Build and release
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  release:
+    permissions:
+      contents: write
+      actions: write
+      attestations: write
+      deployments: write
+      packages: write
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      # 检出存储库
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 设置 rust 环境
+      - name: Rust setup
+        uses: dtolnay/rust-toolchain@stable
+
+      # rust 缓存
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+      
+      # 设置 node 环境
+      - name: Sync node version and setup cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+
+      # 全局安装pnpm
+      - name: Install pnpm
+        run: npm install -g pnpm
+      
+      # 安装前端依赖
+      - name: Install frontend dependencies
+        run: pnpm install
+
+      # 构建应用
+      - name: Build the app
+        uses: tauri-apps/tauri-action@v0
+
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'WukongWallpaper v__VERSION__'
+          releaseBody: 'See the assets to download and install this version.'
+          releaseDraft: true
+          prerelease: false
