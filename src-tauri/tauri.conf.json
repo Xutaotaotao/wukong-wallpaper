@@ -21,7 +21,8 @@
         "request": true,
         "scope": [
           "http://localhost/*",
-          "https://wegame.gtimg.com/*"
+          "https://wegame.gtimg.com/*",
+          "https://taotaoxu.com/*"
         ]
       }
     },

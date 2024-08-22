@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/tauri";
-import { Row, Col, Typography, Button,Image, message } from "antd";
+import { Row, Col, Typography, Button,Image, message, Spin } from "antd";
 import { listen } from "@tauri-apps/api/event";
+import { fetch, ResponseType } from '@tauri-apps/api/http'
 import { WALLPAPERS } from "./utils/const";
 import "./App.css";
 
 const { Title } = Typography;
+
+const dataFetchUrl = 'https://taotaoxu.com/wukong/data.json'
 
 let currentIndex = 0
 
@@ -15,22 +18,32 @@ function App() {
     thumbnail:'',
     preview: ''
   });
+  const [loading,setLoading] = useState(false);
+  const [tip,setTip] = useState('初始化中...');
 
-  const handleChangeWallpaper = async (item:any,index:number) => {
+  const [wallPapers,setWallPapers] = useState<any[]>([]);
+
+  const handleChangeWallpaper = async (item:any,index:number,showLoading=true) => {
+    setTip('设置中...')
     currentIndex = index;
-    // setLoading(true);
+    if (showLoading) {
+      setLoading(true);
+    }
     try {
-      // 调用后端保存图片并设置壁纸
       await invoke('download_and_set_wallpaper', {
         url: item.url,
         fileName: item.file_id,
-        wallpapers: WALLPAPERS
+        wallpapers: wallPapers
       });
-      message.success('壁纸更改成功!');
+      if (showLoading) {
+        message.success('壁纸更改成功!');
+      }
     } catch (error) {
-      message.error(`更改壁纸失败: ${error}`);
+      if (showLoading) {
+        message.error(`更改壁纸失败: ${error}`);
+      }
     } finally {
-      // setLoading(false);
+      setLoading(false);
     }
   };
 
@@ -41,13 +54,12 @@ function App() {
 
   useEffect(() => {
     const unlistenNext = listen("next_wallpaper", () => {
-      const indexData = currentIndex === WALLPAPERS.length - 1 ? 0 : currentIndex + 1;
-      console.log(indexData);
-      handleChangeWallpaper(WALLPAPERS[indexData],indexData);
+      const indexData = currentIndex === wallPapers.length - 1 ? 0 : currentIndex + 1;
+      handleChangeWallpaper(wallPapers[indexData],indexData,false);
     });
     const unlistenPrevious = listen("previous_wallpaper", () => {
-      const indexData = currentIndex === 0 ? WALLPAPERS.length - 1 : currentIndex - 1;
-      handleChangeWallpaper(WALLPAPERS[indexData],indexData);
+      const indexData = currentIndex === 0 ? wallPapers.length - 1 : currentIndex - 1;
+      handleChangeWallpaper(wallPapers[indexData],indexData,false);
     });
 
     return () => {
@@ -56,29 +68,54 @@ function App() {
     };
   }, []);
 
-  return (
-    <div className="w-full h-full p-1">
-      <Row gutter={4}>
-        {WALLPAPERS.map((item, index) => (
-          <Col key={index} span={8}>
-            <div className="relative group">
-              <img
-                className="rounded w-full"
-                src={item.thumbnail}
-                alt={item.title}
-              />
-              <div className="absolute inset-0 bg-black bg-opacity-50 flex justify-center items-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <Button className="mr-2" onClick={() => handlePreview(item)}>预览</Button>
-                <Button onClick={() => handleChangeWallpaper(item,index)}>设置壁纸</Button>
-              </div>
-            </div>
+  useEffect(() => {
+    setLoading(true)
+    fetch(dataFetchUrl, {
+      method: 'GET',
+      headers: {
+        'content-type': 'application/json',
+      },
+      responseType: ResponseType.JSON,
+      timeout: 2000,
+    })
+    .then((res:any) => {
+      if (res.data && Array.isArray(res.data.wallPapers) && res.data.wallPapers.length) {
+        setWallPapers(res.data.wallPapers)
+      } else {
+        setWallPapers(WALLPAPERS)
+      }
+    })
+    .catch((e) => {
+    }).finally(() => {
+      setLoading(false)
+    })
+  },[])
 
-            <div className="flex justify-center align-center p-1">
-              <Title level={5}>{item.title}</Title>
-            </div>
-          </Col>
-        ))}
-      </Row>
+  return (
+    <div className="w-full h-full p-1 relative">
+       <Spin tip={tip} spinning={loading}>
+        <Row gutter={4} style={{minHeight:'600px'}}>
+          {wallPapers.map((item, index) => (
+            <Col key={index} span={8}>
+              <div className="relative group">
+                <img
+                  className="rounded w-full"
+                  src={item.thumbnail}
+                  alt={item.title}
+                />
+                <div className="absolute inset-0 bg-black bg-opacity-50 flex justify-center items-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <Button className="mr-2" onClick={() => handlePreview(item)}>预览</Button>
+                  <Button onClick={() => handleChangeWallpaper(item,index,true)}>设置壁纸</Button>
+                </div>
+              </div>
+
+              <div className="flex justify-center align-center p-1">
+                <Title level={5}>{item.title}</Title>
+              </div>
+            </Col>
+          ))}
+        </Row>
+        </Spin>
       <Image
         width={200}
         style={{ display: 'none' }}
@@ -91,8 +128,8 @@ function App() {
           },
         }}
       />
-      
     </div>
+    
   );
 }
 
