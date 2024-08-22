@@ -4,15 +4,22 @@
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 use dirs;
 use reqwest;
-use std::ffi::CString;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
+use std::process::Command;
 use tauri::api::shell::open;
 use tauri::{command, Manager, SystemTrayEvent, SystemTrayMenuItem};
 use tauri::{CustomMenuItem, SystemTray, SystemTrayMenu};
+
+#[cfg(windows)]
+use std::ffi::CString;
+#[cfg(windows)]
 use winapi::um::winuser::SystemParametersInfoA;
+#[cfg(windows)]
 use winapi::um::winuser::SPI_SETDESKWALLPAPER;
+
+
 
 #[command]
 async fn download_and_set_wallpaper(url: String, file_name: String) -> Result<(), String> {
@@ -30,6 +37,7 @@ async fn download_and_set_wallpaper(url: String, file_name: String) -> Result<()
 }
 
 fn change_wallpaper(image_path: String) -> Result<(), String> {
+    print!("{}", image_path);
     #[cfg(target_os = "windows")]
     {
         let c_image_path = CString::new(image_path).map_err(|e| e.to_string())?;
@@ -122,11 +130,6 @@ fn main() {
                 }
                 _ => {}
             },
-            SystemTrayEvent::LeftClick { .. } => {
-                let window = app.get_window("main").unwrap();
-                window.show().unwrap();
-                window.set_focus().unwrap();
-            }
             _ => {}
         })
         .setup(|app| {

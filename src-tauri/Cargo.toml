@@ -17,7 +17,9 @@ serde_json = "1"
 dirs = "5.0"
 mio = '^1.0.1'
 reqwest = "0.12.7"
-winapi = { version = "0.3.9", features = ["winuser"] }
+
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3.9", features = ["winuser", "libloaderapi", "winnt"] }
 
 [features]
 # This feature is used for production builds or when a dev server is not specified, DO NOT REMOVE!!

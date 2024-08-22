@@ -55,14 +55,18 @@ function App() {
   };
 
   useEffect(() => {
-    listen("next_wallpaper", () => {
+    const nextListen = listen("next_wallpaper", () => {
       const indexData = currentIndex === wallPapers.length - 1 ? 0 : currentIndex + 1;
       handleChangeWallpaper(wallPapers[indexData], indexData, false);
     });
-    listen("previous_wallpaper", () => {
+    const preListen = listen("previous_wallpaper", () => {
       const indexData = currentIndex === 0 ? wallPapers.length - 1 : currentIndex - 1;
       handleChangeWallpaper(wallPapers[indexData], indexData, false);
     });
+    return () => {
+      nextListen.then((unlisten) => unlisten());
+      preListen.then((unlisten) => unlisten());
+    };
   }, []);
 
   useEffect(() => {
