@@ -34,3 +34,8 @@ pnpm tauri dev
 ```bash
 pnpm tauri build
 ```
+## 联系作者
+
+微信扫码即可联系
+
+<img src="https://xutaotaotao.github.io/wx_qr.jpg" />
