@@ -10,6 +10,7 @@ use std::path::PathBuf;
 use std::process::Command;
 use tauri::{command, Manager, SystemTrayEvent, SystemTrayMenuItem};
 use tauri::{CustomMenuItem, SystemTray, SystemTrayMenu};
+use tauri::api::shell::open;
 
 #[command]
 async fn download_and_set_wallpaper(url: String, file_name: String) -> Result<(), String> {
@@ -79,6 +80,7 @@ fn main() {
     let show = CustomMenuItem::new("show".to_string(), "打开面板");
     let next = CustomMenuItem::new("next".to_string(), "下一张");
     let previous= CustomMenuItem::new("previous".to_string(), "上一张");
+    let about_app = CustomMenuItem::new("about_app".to_string(), "关于");
     let quit = CustomMenuItem::new("quit".to_string(), "退出");
 
     
@@ -88,6 +90,8 @@ fn main() {
         .add_native_item(SystemTrayMenuItem::Separator)
         .add_item(next)
         .add_item(previous)
+        .add_native_item(SystemTrayMenuItem::Separator)
+        .add_item(about_app)
         .add_native_item(SystemTrayMenuItem::Separator)
         .add_item(quit);
     let system_tray = SystemTray::new().with_menu(tray_menu);
@@ -113,6 +117,9 @@ fn main() {
                 }
                 "previous" => {
                     app.emit_all("previous_wallpaper", {}).unwrap();
+                }
+                "about_app" => {
+                    let _ = open(&app.shell_scope(), "https://github.com/Xutaotaotao/wukong-wallpaper", None);
                 }
                 "quit" => {
                     std::process::exit(0);
